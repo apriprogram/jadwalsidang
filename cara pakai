@@ -1,0 +1,10 @@
+cd "C:\Users\pngns\OneDrive\Desktop\APP JADWAL SIDANG"
+npm install
+npm start
+node server.js
+http://localhost:3000/index.html
+
+Username : admin
+Password : admin
+
+grafari bandarjaya

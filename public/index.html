@@ -1,0 +1,2838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Sidang Pro - SPA</title>
+    <link rel="icon" type="image/png" href="img/logosidang_white.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --warning: #f59e0b;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+
+            --bg-body: #f1f5f9;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --bg-header: rgba(255, 255, 255, 0.8);
+            --border-color: var(--slate-200);
+            --text-main: var(--slate-800);
+            --text-muted: var(--slate-500);
+            --card-border: #cbd5e1;
+        }
+
+        body.dark-mode {
+            --bg-body: #0b0f1a;
+            --bg-sidebar: #111827;
+            --bg-card: #1f2937;
+            --bg-header: rgba(17, 24, 39, 0.8);
+            --border-color: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --card-border: #374151;
+            --slate-50: #111827;
+            --slate-100: #1f2937;
+            --slate-200: #374151;
+            --slate-800: #f9fafb;
+        }
+
+        /* Dark mode overrides for Tailwind utilities */
+        body.dark-mode .text-slate-900 {
+            color: #f9fafb !important;
+        }
+
+        body.dark-mode .text-slate-800 {
+            color: #f3f4f6 !important;
+        }
+
+        body.dark-mode .text-slate-700 {
+            color: #e5e7eb !important;
+        }
+
+        body.dark-mode .text-slate-600 {
+            color: #d1d5db !important;
+        }
+
+        body.dark-mode .text-slate-500 {
+            color: #9ca3af !important;
+        }
+
+        body.dark-mode .bg-white {
+            background-color: var(--bg-card) !important;
+        }
+
+        body.dark-mode .bg-slate-50 {
+            background-color: var(--slate-50) !important;
+        }
+
+        body.dark-mode .bg-slate-100 {
+            background-color: var(--slate-100) !important;
+        }
+
+        body.dark-mode .border-slate-100,
+        body.dark-mode .border-slate-200 {
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .backdrop-blur-md {
+            background-color: rgba(17, 24, 39, 0.7) !important;
+        }
+
+        body.dark-mode .sidebar img {
+            filter: brightness(0) invert(1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .sidebar {
+            width: 180px;
+            height: 100vh;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 50;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .main-content {
+            margin-left: 180px;
+            padding: 16px;
+            min-height: 100vh;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar.collapsed~.main-content {
+            margin-left: 80px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px 14px;
+            border: 1.5px solid var(--card-border);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            background-color: var(--slate-50);
+        }
+
+        /* Comparison Card - Clean Style */
+        .comparison-card {
+            background: var(--bg-card) !important;
+            border: 1.5px solid var(--card-border) !important;
+            color: var(--text-main) !important;
+            padding: 12px 14px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+            position: relative;
+        }
+
+        .comparison-card .text-white\/70 {
+            color: var(--text-muted) !important;
+        }
+
+        .comparison-card .text-white {
+            color: var(--text-main) !important;
+        }
+
+        .donut-container {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+        }
+
+        .donut-chart {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(#ef4444 var(--pid-percent, 50%),
+                    #10b981 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .donut-chart::after {
+            content: '';
+            position: absolute;
+            width: 34px;
+            height: 34px;
+            background: var(--bg-card);
+            border-radius: 50%;
+            border: 1px solid var(--card-border);
+        }
+
+        .pid-indicator {
+            color: #ef4444;
+        }
+
+        .pdt-indicator {
+            color: #10b981;
+        }
+
+        .import-card {
+            background: var(--bg-card) !important;
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px dashed var(--card-border);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        body.dark-mode .import-card {
+            background-color: var(--bg-card) !important;
+            border-color: var(--card-border);
+        }
+
+        .import-card:hover {
+            border-color: var(--primary);
+            background-color: rgba(37, 99, 235, 0.05) !important;
+        }
+
+        body.dark-mode .import-card:hover {
+            background-color: rgba(37, 99, 235, 0.1) !important;
+        }
+
+        .btn-browse {
+            margin-top: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-premium {
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-premium:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .top-header {
+            background: var(--bg-header);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 16px;
+            margin: -16px -16px 16px -16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #theme-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            color: var(--slate-800) !important;
+        }
+
+        .custom-table-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1.5px solid var(--card-border);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .custom-table th {
+            padding: 8px 8px;
+            font-weight: 700;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            background: var(--slate-50);
+            border-bottom: 2px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .custom-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.65rem;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+
+        .custom-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .custom-table tr:hover td {
+            background: var(--slate-50);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            margin: 2px 10px;
+            border-radius: 8px;
+            color: #4b5563;
+            font-weight: 500;
+            font-size: 0.7rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .nav-text,
+        .sidebar.collapsed h1 {
+            opacity: 0;
+            visibility: hidden;
+            width: 0;
+        }
+
+        .sidebar.collapsed .nav-item {
+            width: 40px;
+            height: 40px;
+            margin: 4px auto;
+            padding: 0;
+            justify-content: center;
+            border-radius: 10px;
+            gap: 0;
+        }
+
+        .sidebar.collapsed .p-4 {
+            padding: 16px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .p-4>div {
+            gap: 0;
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .w-10 {
+            width: 28px;
+            height: 28px;
+            margin: 0;
+        }
+
+        .sidebar.collapsed #logout-btn {
+            width: 40px;
+            height: 40px;
+            margin: 4px auto;
+            padding: 0;
+            justify-content: center;
+            border-radius: 10px;
+            gap: 0;
+        }
+
+        .sidebar.collapsed .absolute.bottom-8 {
+            padding: 0 14px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 170px !important;
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+                box-shadow: 20px 0 50px rgba(0, 0, 0, 0.1);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 12px;
+            }
+
+            .top-header>div:first-child>div:last-child {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .top-header h2 {
+                display: none;
+            }
+
+            #top-bar-sub {
+                display: none;
+            }
+
+            #sidebar-toggle {
+                padding: 1px !important;
+                margin-right: 2px !important;
+            }
+
+            #sidebar-toggle svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            #theme-toggle {
+                width: 28px !important;
+                height: 28px !important;
+            }
+
+            #theme-toggle svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            #notification-btn {
+                width: 28px !important;
+                height: 28px !important;
+            }
+
+            #profile-trigger {
+                padding: 2px !important;
+            }
+
+            #profile-trigger .text-right {
+                display: none;
+            }
+
+            .top-header {
+                margin: -12px -12px 12px -12px;
+                padding: 8px 12px;
+                justify-content: space-between;
+                height: 56px;
+            }
+
+            #sidebar-toggle {
+                margin-right: 0 !important;
+                padding: 8px !important;
+            }
+
+            .flex.items-center.gap-4 {
+                gap: 8px !important;
+            }
+
+            #user-avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+            #admin-name {
+                font-size: 11px;
+            }
+
+            #admin-role {
+                font-size: 8px;
+            }
+
+            .stat-card {
+                padding: 8px !important;
+                display: flex;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                text-align: left !important;
+                justify-content: flex-start !important;
+                min-height: 0 !important;
+                gap: 6px !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.85rem !important;
+                line-height: 1 !important;
+                margin-bottom: 0 !important;
+            }
+
+            .stat-card p {
+                font-size: 7px !important;
+                line-height: 1 !important;
+                margin-top: 2px !important;
+            }
+
+            .stat-card .w-10,
+            .stat-card .w-12 {
+                width: 24px !important;
+                height: 24px !important;
+                margin-bottom: 0 !important;
+                border-radius: 6px !important;
+            }
+
+            .stat-card svg {
+                width: 12px !important;
+                height: 12px !important;
+            }
+
+            .stat-card .flex.justify-between.items-start {
+                margin-bottom: 0 !important;
+            }
+
+            .import-card {
+                order: 10;
+                grid-column: span 3 !important;
+                padding: 8px !important;
+                height: auto !important;
+                border-style: solid !important;
+                border-radius: 12px !important;
+            }
+
+            .import-card>div:first-child,
+            .import-card h4,
+            .import-card p {
+                display: none !important;
+            }
+
+            .import-card .btn-browse {
+                margin-top: 0 !important;
+                width: 100%;
+                font-size: 9px !important;
+                padding: 4px 8px !important;
+                border-radius: 6px !important;
+                height: 28px !important;
+            }
+
+
+            /* Table Header Mobile Layout */
+            #table-panel>div:first-child {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+                padding: 16px !important;
+            }
+
+            #table-panel>div:first-child>div:last-child {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 8px !important;
+            }
+
+            #search-table {
+                width: 100% !important;
+            }
+
+            #table-panel .flex.gap-4.items-center {
+                width: 100% !important;
+            }
+
+            #table-fullscreen-btn {
+                display: none !important;
+            }
+
+            #clear-data-btn,
+            #download-pdf {
+                flex: 1 !important;
+                justify-content: center !important;
+            }
+
+            /* User Table Mobile Refinements */
+            #user-list td img {
+                width: 28px !important;
+                height: 28px !important;
+            }
+
+            #user-list td {
+                padding: 4px 6px !important;
+                font-size: 10px !important;
+            }
+
+            #user-list .font-bold {
+                font-size: 11px !important;
+            }
+
+            /* ===== MODAL MOBILE COMPACTION ===== */
+
+            /* User Add/Edit Modal */
+            #user-modal .modal-content,
+            #detail-modal .modal-content,
+            #edit-profile-modal .modal-content {
+                max-width: 100% !important;
+                margin: 8px !important;
+            }
+
+            #user-modal form,
+            #edit-profile-modal form {
+                padding: 12px !important;
+                gap: 8px !important;
+            }
+
+            #user-modal .space-y-4>*,
+            #edit-profile-modal .space-y-6>* {
+                margin-top: 6px !important;
+            }
+
+            #user-modal input,
+            #user-modal select,
+            #edit-profile-modal input,
+            #edit-profile-modal select {
+                padding: 5px 8px !important;
+                font-size: 10px !important;
+                height: 30px !important;
+            }
+
+            #user-modal label,
+            #edit-profile-modal label {
+                font-size: 9px !important;
+                margin-bottom: 2px !important;
+            }
+
+            #user-modal .h-14,
+            #detail-modal .h-16 {
+                height: 36px !important;
+                padding: 8px 12px !important;
+            }
+
+            #user-modal .h-14 h3,
+            #edit-profile-modal h3 {
+                font-size: 11px !important;
+            }
+
+            #user-modal .w-20,
+            #user-modal .h-20 {
+                width: 72px !important;
+                height: 72px !important;
+            }
+
+            #edit-profile-modal .w-24,
+            #edit-profile-modal .h-24 {
+                width: 72px !important;
+                height: 72px !important;
+            }
+
+            #user-modal button[type="submit"],
+            #user-modal button[type="button"],
+            #edit-profile-modal button[type="submit"] {
+                padding: 6px 12px !important;
+                font-size: 10px !important;
+                height: 30px !important;
+            }
+
+            #user-modal .relative.group>label,
+            #edit-profile-modal .relative.group>label {
+                padding: 3px !important;
+                border-radius: 5px !important;
+            }
+
+            #user-modal .relative.group>label svg,
+            #edit-profile-modal .relative.group>label svg {
+                width: 8px !important;
+                height: 8px !important;
+            }
+
+            /* Detail Modal */
+            #detail-modal .px-8 {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                padding-bottom: 12px !important;
+            }
+
+            #detail-modal .w-24.h-24 {
+                width: 80px !important;
+                height: 80px !important;
+            }
+
+            #detail-modal .-mt-12 {
+                margin-top: -40px !important;
+            }
+
+            #detail-modal h3.text-2xl {
+                font-size: 0.9rem !important;
+            }
+
+            #detail-modal .text-sm {
+                font-size: 10px !important;
+            }
+
+            #detail-modal .w-8.h-8 {
+                width: 24px !important;
+                height: 24px !important;
+            }
+
+            #detail-modal .p-2.text-\[11px\] {
+                padding: 4px 6px !important;
+                font-size: 9px !important;
+            }
+
+            #detail-modal .grid.grid-cols-1.md\:grid-cols-2 {
+                gap: 4px !important;
+                margin-top: 8px !important;
+            }
+
+            #close-detail-modal {
+                margin-top: 10px !important;
+                padding: 6px !important;
+                font-size: 10px !important;
+            }
+
+            /* Delete Confirmation Modals */
+            #modal-hapus-semua .modal-content,
+            #modal-hapus-user .modal-content {
+                padding: 16px !important;
+            }
+
+            #modal-hapus-semua .w-16,
+            #modal-hapus-user .w-16 {
+                width: 36px !important;
+                height: 36px !important;
+            }
+
+            #modal-hapus-semua h3,
+            #modal-hapus-user h3 {
+                font-size: 0.85rem !important;
+                margin-bottom: 4px !important;
+            }
+
+            #modal-hapus-semua p,
+            #modal-hapus-user p {
+                font-size: 10px !important;
+                margin-bottom: 12px !important;
+            }
+
+            #modal-hapus-semua .flex.gap-2,
+            #modal-hapus-user .flex.gap-2 {
+                gap: 6px !important;
+            }
+
+            #modal-hapus-semua button,
+            #modal-hapus-user button {
+                padding: 6px !important;
+                font-size: 10px !important;
+            }
+        }
+
+        .nav-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.8;
+        }
+
+        .nav-item:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        body.dark-mode .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #f9fafb;
+        }
+
+        body.dark-mode #sidebar-toggle:hover,
+        body.dark-mode #profile-trigger:hover,
+        body.dark-mode #theme-toggle:hover,
+        body.dark-mode #profile-menu .view-link:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #f9fafb !important;
+        }
+
+        body.dark-mode #logout-btn-dropdown:hover,
+        body.dark-mode #logout-btn:hover {
+            background-color: rgba(244, 63, 94, 0.1) !important;
+            color: #fb7185 !important;
+        }
+
+        /* Profile Photo Border Overrides for Dark Mode */
+        body.dark-mode #user-avatar,
+        body.dark-mode #detail-photo,
+        body.dark-mode #edit-profile-preview,
+        body.dark-mode #new-user-preview,
+        body.dark-mode .user-table-photo {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark-mode .bg-emerald-50 {
+            background-color: rgba(16, 185, 129, 0.1) !important;
+            color: #34d399 !important;
+        }
+
+        body.dark-mode .bg-rose-50 {
+            background-color: rgba(244, 63, 94, 0.1) !important;
+            color: #fb7185 !important;
+        }
+
+        body.dark-mode .bg-indigo-50 {
+            background-color: rgba(234, 181, 39, 0.1) !important;
+            color: #fef08a !important;
+        }
+
+        body.dark-mode .bg-slate-100 {
+            background-color: rgba(148, 163, 184, 0.1) !important;
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .bg-slate-50 {
+            background-color: rgba(30, 41, 59, 0.5) !important;
+        }
+
+        body.dark-mode #close-detail-modal {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #close-detail-modal:hover {
+            background-color: #475569 !important;
+        }
+
+        body.dark-mode #detail-name {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #detail-role,
+        body.dark-mode #detail-phone,
+        body.dark-mode #detail-instansi,
+        body.dark-mode #detail-date {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode #detail-password {
+            color: #fb7185 !important;
+        }
+
+        body.dark-mode #detail-password-container {
+            background-color: rgba(244, 63, 94, 0.05) !important;
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            border-radius: 10px !important;
+            padding: 4px 12px !important;
+        }
+
+        /* Form Inputs & Selects in Dark Mode */
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="password"],
+        body.dark-mode select {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            padding: 8px 12px !important;
+            font-size: 0.75rem !important;
+        }
+
+        body.dark-mode input[type="text"]:focus,
+        body.dark-mode input[type="password"]:focus,
+        body.dark-mode select:focus {
+            background-color: rgba(15, 23, 42, 0.8) !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        }
+
+        body.dark-mode select option {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+
+        /* Modal Dark Mode Overrides */
+        body.dark-mode .modal-content {
+            background-color: #1e293b !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        body.dark-mode .modal-content .border-b,
+        body.dark-mode .modal-content .border-t,
+        body.dark-mode .modal-content .border-slate-50,
+        body.dark-mode .modal-content .border-slate-100 {
+            border-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        body.dark-mode #user-modal-title,
+        body.dark-mode #detail-modal h3,
+        body.dark-mode #edit-profile-modal h3,
+        body.dark-mode #detail-name {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .modal-content label,
+        body.dark-mode .modal-content .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .modal-content .text-slate-800,
+        body.dark-mode .modal-content .text-slate-700,
+        body.dark-mode .modal-content .text-slate-600 {
+            color: #e2e8f0 !important;
+        }
+
+        /* Custom Dropdown Dark Mode */
+        body.dark-mode .custom-dropdown-trigger {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .custom-dropdown-trigger:hover {
+            background-color: rgba(15, 23, 42, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        body.dark-mode .custom-dropdown-menu {
+            background-color: #1e293b !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        body.dark-mode .custom-dropdown-item {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .custom-dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .custom-dropdown-item.active {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            color: #3b82f6 !important;
+        }
+
+        body.dark-mode .custom-dropdown-item.active .check-icon {
+            color: #3b82f6 !important;
+        }
+
+        /* Buttons in Modal Dark Mode */
+        body.dark-mode .modal-content button.bg-slate-800 {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .modal-content button.bg-slate-800:hover {
+            background-color: #2563eb !important;
+        }
+
+        body.dark-mode .modal-content button.bg-slate-50 {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .modal-content button.bg-slate-50:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark-mode .modal-content button.text-slate-400:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .modal-content input::placeholder {
+            color: #475569 !important;
+        }
+
+        body.dark-mode .modal-content input:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        }
+
+        .nav-item.active {
+            background: #374151;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .nav-item.active svg {
+            opacity: 1;
+        }
+
+        .badge-case {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            border: 1.5px solid transparent;
+            white-space: nowrap;
+        }
+
+        .badge-pid {
+            background-color: #fff1f2;
+            color: #e11d48;
+            border-color: #fecdd3;
+        }
+
+        .badge-pdt {
+            background-color: #f0fdf4;
+            color: #059669;
+            border-color: #bbf7d0;
+        }
+
+        body.dark-mode .badge-pid {
+            background-color: rgba(225, 29, 72, 0.1);
+            color: #fb7185;
+            border-color: rgba(225, 29, 72, 0.2);
+        }
+
+        body.dark-mode .badge-pdt {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        body.dark-mode #clear-data-btn {
+            background-color: rgba(244, 63, 94, 0.1) !important;
+            color: #fb7185 !important;
+            border-color: rgba(244, 63, 94, 0.2) !important;
+        }
+
+        body.dark-mode #clear-data-btn:hover {
+            background-color: rgba(244, 63, 94, 0.2) !important;
+        }
+
+        .badge-default {
+            background-color: #f8fafc;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+
+        body.dark-mode .badge-default {
+            background-color: #374151;
+            color: #9ca3af;
+            border-color: #4b5563;
+        }
+
+        .row-pid td {
+            border-top: 1px solid #fecaca;
+            border-bottom: 1px solid #fecaca;
+            background-color: #fef2f2;
+        }
+
+        .row-pdt td {
+            border-top: 1px solid #bbf7d0;
+            border-bottom: 1px solid #bbf7d0;
+            background-color: #f0fdf4;
+        }
+
+        body.dark-mode .row-pid td {
+            background-color: rgba(244, 63, 94, 0.05);
+            border-color: rgba(244, 63, 94, 0.1);
+        }
+
+        body.dark-mode .row-pdt td {
+            background-color: rgba(16, 185, 129, 0.05);
+            border-color: rgba(16, 185, 129, 0.1);
+        }
+
+        .row-pid:hover td {
+            background-color: #fee2e2 !important;
+        }
+
+        .row-pdt:hover td {
+            background-color: #dcfce7 !important;
+        }
+
+        body.dark-mode .row-pid:hover td {
+            background-color: rgba(244, 63, 94, 0.1) !important;
+        }
+
+        body.dark-mode .row-pdt:hover td {
+            background-color: rgba(16, 185, 129, 0.1) !important;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-modal-in {
+            animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-modal-out {
+            animation: modalOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        #table-panel:fullscreen {
+            padding: 32px;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        #table-panel:fullscreen .custom-table-container {
+            border: none;
+            box-shadow: none;
+            background: white;
+        }
+
+        body.dark-mode #table-panel:fullscreen {
+            background: #1e293b;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes modalOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 20px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .tabbar-scroll::-webkit-scrollbar {
+            height: 1px;
+        }
+
+        .tabbar-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        body.dark-mode .tabbar-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        .import-card {
+            background-color: #ffffff;
+            border: 2px dashed #e2e8f0;
+            border-radius: 20px;
+            padding: 12px 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+
+        .import-card:hover,
+        .import-card.drag-over {
+            border-color: var(--primary);
+            background-color: var(--slate-50);
+            transform: translateY(-2px);
+        }
+
+        .import-card svg {
+            color: #cbd5e1;
+            transition: color 0.3s ease;
+        }
+
+        .import-card:hover svg,
+        .import-card.drag-over svg {
+            color: var(--primary);
+        }
+
+        .btn-browse {
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            margin-top: 12px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-browse svg {
+            stroke: white;
+        }
+
+        .btn-browse:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.3);
+            color: white;
+        }
+
+        /* Global Compact UI Overrides */
+        input[type="text"],
+        input[type="password"],
+        select {
+            padding: 8px 12px !important;
+            font-size: 0.75rem !important;
+            border-radius: 8px !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        /* Modal Input Hover & Focus States */
+        #user-modal input[type="text"],
+        #user-modal input[type="password"],
+        #user-modal select,
+        #edit-profile-modal input[type="text"],
+        #edit-profile-modal input[type="password"],
+        #edit-profile-modal select {
+            border: 1px solid #e2e8f0 !important;
+            background-color: #f8fafc !important;
+            outline: none !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        #user-modal input[type="text"]:hover,
+        #user-modal input[type="password"]:hover,
+        #user-modal select:hover,
+        #edit-profile-modal input[type="text"]:hover,
+        #edit-profile-modal input[type="password"]:hover,
+        #edit-profile-modal select:hover {
+            border-color: #93c5fd !important;
+            background-color: #fff !important;
+        }
+
+        #user-modal input[type="text"]:focus,
+        #user-modal input[type="password"]:focus,
+        #user-modal select:focus,
+        #edit-profile-modal input[type="text"]:focus,
+        #edit-profile-modal input[type="password"]:focus,
+        #edit-profile-modal select:focus {
+            border-color: #3b82f6 !important;
+            background-color: #fff !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+        }
+
+        /* Custom Dropdown Styles */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-dropdown-trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 0.75rem;
+            background-color: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            /* Pill shape */
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 34px;
+            text-align: left;
+        }
+
+        .custom-dropdown-label {
+            flex: 1;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 8px;
+        }
+
+        .custom-dropdown-trigger:hover {
+            border-color: #cbd5e1;
+            background-color: #f8fafc;
+        }
+
+        .custom-dropdown.open .custom-dropdown-trigger {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+        }
+
+        .custom-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            padding: 4px;
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .custom-dropdown.open .custom-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .custom-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            color: #475569;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 2px;
+        }
+
+        .custom-dropdown-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .custom-dropdown-item:hover {
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .custom-dropdown-item.active {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .custom-dropdown-item.active .check-icon {
+            display: block;
+        }
+
+        .custom-dropdown-item .check-icon {
+            display: none;
+            color: #64748b;
+            /* Muted checkmark like the image */
+        }
+
+        #search-table {
+            padding-left: 36px !important;
+        }
+
+        .btn-premium,
+        #add-user-btn-view,
+        #clear-data-btn,
+        #clear-all-data-btn,
+        #download-pdf,
+        .modal-content button {
+            padding: 4px 12px !important;
+            font-size: 11px !important;
+            border-radius: 6px !important;
+            height: 34px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+        }
+
+        .btn-premium svg,
+        #add-user-btn-view svg,
+        #clear-data-btn svg,
+        #clear-all-data-btn svg,
+        #download-pdf svg {
+            width: 14px !important;
+            height: 14px !important;
+        }
+
+        .header-datetime {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-right: 8px;
+            padding-right: 8px;
+            border-right: 1px solid var(--border-color);
+            line-height: 1.1;
+        }
+
+        .header-datetime #widget-time {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            letter-spacing: -0.02em;
+        }
+
+        .header-datetime .time-divider {
+            width: 1px;
+            height: 12px;
+            background: var(--border-color);
+        }
+
+        .header-datetime #widget-suffix {
+            font-size: 8px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .header-datetime #widget-date {
+            font-size: 8px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+        }
+
+        @media (max-width: 640px) {
+            .header-datetime {
+                display: none;
+            }
+        }
+
+        /* Notifications */
+        .notification-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: -10px;
+            width: 320px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            overflow: hidden;
+            display: none;
+            transform-origin: top right;
+        }
+
+        @media (max-width: 768px) {
+            .notification-dropdown {
+                position: fixed;
+                top: 60px;
+                left: 16px;
+                right: 16px;
+                width: auto;
+                max-width: none;
+                transform-origin: top;
+            }
+        }
+
+        body.dark-mode .notification-dropdown {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes dropdownIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes dropdownOut {
+            from {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(0.95) translateY(-5px);
+            }
+        }
+
+        .dropdown-animate-in {
+            display: block !important;
+            animation: dropdownIn 0.2s ease-out forwards;
+        }
+
+        .dropdown-animate-out {
+            animation: dropdownOut 0.2s ease-in forwards;
+            pointer-events: none;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--slate-50);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.dark-mode .notification-header {
+            background: rgba(15, 23, 42, 0.5);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+            cursor: default;
+        }
+
+        .notification-item:hover {
+            background: var(--slate-50);
+        }
+
+        body.dark-mode .notification-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item.unread {
+            background: #eff6ff;
+        }
+
+        body.dark-mode .notification-item.unread {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        body.dark-mode .notification-item p.text-slate-800 {
+            color: #f1f5f9;
+        }
+
+        .notification-item .action-text {
+            color: rgb(35 46 64) !important;
+        }
+
+        body.dark-mode .notification-item .action-text {
+            color: rgb(248 250 252) !important;
+        }
+
+        .log-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .day-tab.active {
+            background-color: #ebf3ff;
+            color: #2563eb;
+        }
+
+        .day-tab.active .tab-badge {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        body.dark-mode .day-tab.active {
+            background-color: rgba(37, 99, 235, 0.2);
+            color: #60a5fa;
+        }
+
+        body.dark-mode .day-tab.active .tab-badge {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        body.dark-mode .day-tab:not(.active) .tab-badge {
+            background-color: #334155 !important;
+            /* slate-700 */
+            color: #94a3b8 !important;
+            /* slate-400 */
+        }
+
+        body.dark-mode .day-tab:not(.active) {
+            color: #94a3b8 !important;
+        }
+
+        .notif-tabs {
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+        }
+
+        body.dark-mode .notif-tabs {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .notif-tab {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            padding: 12px 0;
+            position: relative;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+        }
+
+        .notif-tab:hover {
+            color: #64748b;
+        }
+
+        body.dark-mode .notif-tab:hover {
+            color: #cbd5e1;
+        }
+
+        .notif-tab.active {
+            color: #2563eb;
+        }
+
+        body.dark-mode .notif-tab.active {
+            color: #60a5fa;
+        }
+
+        .notif-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            right: 20%;
+            height: 2px;
+            background: #2563eb;
+            border-radius: 2px;
+        }
+
+        body.dark-mode .notif-tab.active::after {
+            background: #60a5fa;
+        }
+
+        @keyframes notifListIn {
+            0% { 
+                opacity: 0; 
+                transform: translateY(8px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .notif-animate {
+            animation: notifListIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="p-4 mb-1">
+            <div class="flex items-center gap-2 text-[10px]">
+                <div class="w-10 h-10 flex items-center justify-center">
+                    <img src="img/logosidang.png" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <h1 class="text-sm font-semibold text-slate-800 tracking-tight flex flex-col leading-tight">
+                    <span>Court</span>
+                    <span class="text-blue-600">Schedule</span>
+                </h1>
+            </div>
+        </div>
+        <nav class="space-y-1">
+            <div data-view="jadwalsidang" class="nav-item active view-link">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                </svg>
+                <span class="nav-text">Jadwal Sidang</span>
+            </div>
+            <div data-view="users" class="nav-item view-link">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span class="nav-text">Manajemen User</span>
+            </div>
+            <div data-view="help" class="nav-item view-link">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="nav-text">Bantuan</span>
+            </div>
+        </nav>
+        <div class="absolute bottom-8 left-0 right-0 px-6">
+            <button id="logout-btn"
+                class="flex items-center gap-2 text-[11px] w-full p-4 rounded-[10px] text-rose-500 hover:bg-rose-50 transition-all text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span class="nav-text">Keluar</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="flex items-center gap-1.5 text-[10px]">
+                <button id="sidebar-toggle"
+                    class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-all mr-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <div>
+                    <h2 class="text-xs font-semibold text-slate-800">Halo <span id="welcome-name">Admin</span> 👋</h2>
+                    <p id="top-bar-sub" class="text-[9px] text-slate-500">Sistem Informasi Jadwal Sidang</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button id="theme-toggle"
+                    class="w-9 h-9 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+                    title="Toggle Theme">
+                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <circle cx="12" cy="12" r="4" stroke-width="2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                    </svg>
+                </button>
+                <div class="header-datetime animate-fade-in">
+                    <div id="widget-time">
+                        <span id="time-val">00:00</span>
+                        <span class="time-divider"></span>
+                        <span id="widget-suffix">...</span>
+                    </div>
+                    <div id="widget-date">Memuat...</div>
+                </div>
+                <div class="relative flex items-center">
+                    <button id="notification-btn"
+                        class="w-9 h-9 flex items-center justify-center bg-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-white rounded-xl transition-all relative">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span id="notif-badge"
+                            class="hidden absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <div id="notification-dropdown" class="notification-dropdown hidden">
+                        <div class="notification-header">
+                            <h4 class="text-xs font-bold text-slate-800">Notifikasi Aktivitas</h4>
+                            <button id="clear-notif" class="text-[10px] text-blue-600 font-bold hover:underline">Hapus
+                                Semua</button>
+                        </div>
+                        <div class="notif-tabs">
+                            <button class="notif-tab active" data-filter="all">Semua</button>
+                            <button class="notif-tab" data-filter="today">Hari Ini</button>
+                            <button class="notif-tab" data-filter="this-week">Minggu Ini</button>
+                            <button class="notif-tab" data-filter="earlier">Sebelumnya</button>
+                        </div>
+                        <div id="notification-list" class="notification-list">
+                            <!-- Logs will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+                <div id="search-placeholder"></div>
+                <div class="relative">
+                    <button id="profile-trigger"
+                        class="flex items-center gap-2 text-[10px] hover:bg-slate-50 p-0.5 rounded-lg transition-all">
+                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff"
+                            class="w-8 h-8 rounded-lg border border-slate-100 shadow-sm object-cover">
+                        <div class="flex flex-col items-start leading-tight">
+                            <div id="admin-name" class="text-xs font-semibold text-slate-600">Admin</div>
+                            <div id="admin-role"
+                                class="text-[8px] font-semibold text-slate-400 uppercase tracking-wider">
+                                Super Admin</div>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="profile-menu"
+                        class="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-2xl border border-slate-100 py-1 hidden z-[100] animate-fade-in origin-top-right">
+                        <div onclick="window.switchView('edit-profile')" data-view="edit-profile"
+                            class="w-full flex items-center gap-2 text-[10px] px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all view-link cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Profil
+                        </div>
+                        <div onclick="window.switchView('help')" data-view="help"
+                            class="w-full flex items-center gap-2 text-[10px] px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all view-link cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Bantuan
+                        </div>
+                        <div class="h-px bg-slate-100 my-1 mx-2"></div>
+                        <button id="logout-btn-dropdown"
+                            class="w-full flex items-center gap-2 text-[10px] px-3 py-2 text-rose-500 hover:bg-rose-50 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Keluar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="spa-view-container">
+            <div id="view-dashboard" class="spa-view">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4 mb-2">
+                    <div id="import-zone" class="import-card group"
+                        onclick="document.getElementById('excel-upload').click()">
+                        <h4 class="text-[11px] font-semibold text-slate-800 mb-0.5 text-center">Choose a file or drag &
+                            drop
+                            it
+                            here.</h4>
+                        <p class="text-[10px] text-slate-500 text-center">xlsx, xls - Up to 50MB</p>
+                        <button class="btn-browse">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            Upload file
+                        </button>
+                        <input type="file" id="excel-upload" class="hidden" accept=".xlsx, .xls">
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div
+                                class="w-8 h-8 bg-slate-100 rounded-[8px] flex items-center justify-center text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 id="last-update" class="text-lg font-semibold text-slate-900 mb-0.5">-</h3>
+                        <p class="text-slate-400 text-[11px] font-medium">Hari Ini</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div
+                                class="w-8 h-8 bg-slate-100 rounded-[8px] flex items-center justify-center text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 id="total-perkara" class="text-lg font-semibold text-slate-900 mb-0.5">0 Perkara</h3>
+                        <p class="text-slate-400 text-[11px] font-medium">Total Jadwal Sidang</p>
+                    </div>
+                    <div class="stat-card comparison-card group">
+                        <div class="flex justify-between items-start w-full">
+                            <div
+                                class="w-8 h-8 bg-slate-100 rounded-[8px] flex items-center justify-center text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                </svg>
+                            </div>
+                            <span id="stat-total-percent"
+                                class="text-[10px] font-semibold text-slate-900 mt-1">0%</span>
+                        </div>
+                        <div class="flex items-center gap-3 w-full">
+                            <div class="donut-container">
+                                <div id="case-donut" class="donut-chart"></div>
+                            </div>
+                            <div class="flex-1 flex flex-col justify-center">
+                                <p class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                                    Perbandingan</p>
+                                <div class="flex flex-col gap-0.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-semibold pid-indicator flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                            Pidana
+                                        </span>
+                                        <span id="txt-pidana" class="text-[10px] font-semibold text-slate-700">0</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[9px] font-semibold pdt-indicator flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                            Perdata
+                                        </span>
+                                        <span id="txt-perdata" class="text-[10px] font-semibold text-slate-700">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card hidden md:flex">
+                        <div class="flex justify-between items-start mb-2">
+                            <div
+                                class="w-8 h-8 bg-slate-100 rounded-[8px] flex items-center justify-center text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 id="ruangan-aktif" class="text-lg font-semibold text-slate-900 mb-0.5">-</h3>
+                        <p class="text-slate-400 text-[11px] font-medium">Ruangan Aktif</p>
+                    </div>
+                </div>
+
+                <!-- Tabbar Hari (Capsule Style) -->
+                <div
+                    class="px-3 pt-1 pb-[1px] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-[24px] md:rounded-full border border-slate-200 dark:border-slate-800 shadow-sm w-full md:w-fit mb-2 overflow-hidden">
+                    <div class="flex items-center gap-1 md:gap-1.5 overflow-x-auto tabbar-scroll w-full pb-1">
+                        <button
+                            class="day-tab active flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all"
+                            data-day="Semua">
+                            Semua <span
+                                class="tab-badge bg-blue-600 text-white w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px]">0</span>
+                        </button>
+                        <button
+                            class="day-tab flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            data-day="Senin">
+                            Senin <span
+                                class="tab-badge bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px]">0</span>
+                        </button>
+                        <button
+                            class="day-tab flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            data-day="Selasa">
+                            Selasa <span
+                                class="tab-badge bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px]">0</span>
+                        </button>
+                        <button
+                            class="day-tab flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            data-day="Rabu">
+                            Rabu <span
+                                class="tab-badge bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px]">0</span>
+                        </button>
+                        <button
+                            class="day-tab flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            data-day="Kamis">
+                            Kamis <span
+                                class="tab-badge bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px]">0</span>
+                        </button>
+                        <button
+                            class="day-tab flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            data-day="Jumat">
+                            Jum'at <span
+                                class="tab-badge bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[9px] md:text-[10px]">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="table-panel" class="custom-table-container animate-fade-in">
+                    <div
+                        class="p-4 md:p-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center bg-white/50 backdrop-blur-md gap-4">
+                        <div class="w-full">
+                            <h3 class="text-sm font-semibold text-slate-800">Daftar Jadwal Sidang</h3>
+                            <p class="text-[10px] text-slate-500 mb-2 md:mb-0">Menampilkan jadwal persidangan terbaru.
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row gap-4 items-center w-full md:w-auto">
+                            <div class="relative group w-full md:w-60">
+                                <span
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input type="text" id="search-table" placeholder="Cari nomor perkara..."
+                                    class="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-[10px] focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none w-60 transition-all">
+                            </div>
+                            <div class="flex gap-2 w-full md:w-auto">
+
+                                <button id="download-pdf"
+                                    class="flex-1 md:flex-none btn-premium text-sm py-2 px-5 justify-center font-semibold">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 11h6m-6 4h6" />
+                                    </svg>
+                                    Cetak
+                                </button>
+                                <button id="clear-all-data-btn"
+                                    class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-rose-500 text-white font-semibold hover:bg-rose-600 transition-all ">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Hapus
+                                </button>
+                                <button id="table-fullscreen-btn"
+                                    class="hidden md:flex p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                    title="Maximize">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="custom-table" id="sidang-table">
+                            <thead>
+                                <tr id="table-header"></tr>
+                            </thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="view-users" class="spa-view hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-sm md:text-xl font-semibold text-slate-800">Manajemen User</h2>
+                        <p class="text-[10px] md:text-xs text-slate-500">Kelola akses dan akun pengguna sistem.</p>
+                    </div>
+                    <button id="add-user-btn-view"
+                        class="w-full md:w-auto btn-premium text-sm py-2 px-5 justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Tambah User
+                    </button>
+                </div>
+                <div class="custom-table-container animate-fade-in">
+                    <div class="overflow-x-auto">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th class="w-16">No</th>
+                                    <th class="w-24 text-center">Foto</th>
+                                    <th class="text-left">Nama Lengkap</th>
+                                    <th class="text-left">Username</th>
+                                    <th class="text-left w-32">Role</th>
+                                    <th class="text-left">Kontak</th>
+                                    <th class="text-left">Instansi</th>
+                                    <th class="w-32">Status</th>
+                                    <th class="text-center w-32">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="view-help" class="spa-view hidden">
+                <h2 class="text-sm md:text-xl font-semibold mb-6 text-slate-800">Bantuan</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                        class="bg-white dark:bg-slate-900 p-4 rounded-[10px] border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h4 class="text-sm font-semibold mb-1 text-slate-800 dark:text-slate-100">Impor Data Excel</h4>
+                        <p class="text-slate-500 text-[10px]">Gunakan tombol Impor Excel di Dashboard. Format kolom
+                            harus sesuai urutan standar.</p>
+                    </div>
+                    <div
+                        class="bg-white dark:bg-slate-900 p-4 rounded-[10px] border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h4 class="text-sm font-semibold mb-1 text-slate-800 dark:text-slate-100">Pewarnaan</h4>
+                        <p class="text-slate-500 text-[10px]">Sistem otomatis mewarnai baris berdasarkan jenis perkara
+                            (Pidana/Perdata) dari nomor perkara.</p>
+                    </div>
+                    <div
+                        class="bg-white dark:bg-slate-900 p-4 rounded-[10px] border border-slate-100 dark:border-slate-800 shadow-sm md:col-span-2 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <h4 class="text-sm font-semibold mb-1 text-slate-800 dark:text-slate-100">Butuh Bantuan
+                                Lebih Lanjut?</h4>
+                            <p class="text-slate-500 text-[10px]">Hubungi developer jika Anda mengalami masalah atau
+                                membutuhkan fitur baru.</p>
+                        </div>
+                        <a href="https://wa.me/6281273062324" target="_blank"
+                            class="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-500 text-white px-6 py-2 rounded-[10px] font-semibold text-xs hover:bg-emerald-600 transition-all whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor"
+                                viewBox="0 0 448 512">
+                                <path
+                                    d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.7 17.8 69.7 27.2 106.2 27.2 122.4 0 222-99.6 222-222 0-59.3-23-115.1-65.1-157.1zM223.9 446.3c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3 18.7-68.1-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-5.5-2.8-23.4-8.6-44.6-27.5-16.4-14.7-27.5-32.8-30.7-38.3-3.2-5.6-.3-8.6 2.5-11.4 2.5-2.5 5.5-6.5 8.3-9.7 2.8-3.2 3.7-5.5 5.6-9.2 1.9-3.7 1-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 13.3 5.7 23.7 9.1 31.7 11.7 13.3 4.2 25.4 3.6 35 2.2 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
+                            </svg>
+                            Hubungi Developer
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div id="view-edit-profile" class="spa-view hidden">
+                <div class="max-w-2xl mx-auto">
+                    <div class="mb-6">
+                        <h2 class="text-sm md:text-xl font-semibold text-slate-800">Profil Saya</h2>
+                        <p class="text-[10px] md:text-xs text-slate-500">Lihat dan perbarui informasi profil Anda.</p>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in">
+                        <form id="edit-profile-view-form" class="p-6">
+                            <div class="flex flex-col md:flex-row gap-8">
+                                <!-- Photo Section -->
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="relative group">
+                                        <img id="view-profile-preview"
+                                            src="https://ui-avatars.com/api/?name=User&background=random&color=fff"
+                                            class="w-32 h-32 rounded-2xl border-4 border-slate-50 dark:border-slate-800 shadow-md object-cover transition-all group-hover:brightness-90">
+                                        <label for="view-profile-photo"
+                                            class="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-800 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-black transition-all shadow-lg border-4 border-white dark:border-slate-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </label>
+                                        <input type="file" id="view-profile-photo" class="hidden" accept="image/*">
+                                    </div>
+                                    <div class="text-center">
+                                        <span id="view-profile-role-badge"
+                                            class="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-bold uppercase tracking-wider">Super
+                                            Admin</span>
+                                    </div>
+                                </div>
+
+                                <!-- Info Section -->
+                                <div class="flex-1 space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="space-y-1">
+                                            <label
+                                                class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nama
+                                                Lengkap</label>
+                                            <input type="text" id="view-full-name"
+                                                class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all font-medium"
+                                                placeholder="Nama Lengkap">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label
+                                                class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Username</label>
+                                            <input type="text" id="view-username"
+                                                class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all font-medium"
+                                                placeholder="Username">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label
+                                                class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nomor
+                                                Telepon</label>
+                                            <input type="text" id="view-phone"
+                                                class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all font-medium"
+                                                placeholder="0812...">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label
+                                                class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Instansi</label>
+                                            <input type="text" id="view-instansi"
+                                                class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all font-medium"
+                                                placeholder="Pengadilan Negeri...">
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label
+                                            class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Ganti
+                                            Password (Opsional)</label>
+                                        <div class="relative">
+                                            <input type="password" id="view-profile-password"
+                                                class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all font-medium"
+                                                placeholder="••••••••">
+                                            <button type="button"
+                                                onclick="togglePassword('view-profile-password', this)"
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="pt-4 flex justify-end">
+                                        <button type="submit"
+                                            class="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-xs font-semibold dark:shadow-none hover:bg-blue-700">
+                                            Simpan Perubahan
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="user-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl w-full max-w-sm shadow-xl border border-slate-100">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+                <h3 id="user-modal-title" class="text-sm font-semibold text-slate-800">User Baru</h3>
+                <button type="button"
+                    class="close-user-modal p-1 text-slate-400 hover:text-slate-600 transition-all rounded-lg hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="user-form" class="p-6 space-y-4">
+                <!-- Photo -->
+                <div class="flex justify-center">
+                    <div class="relative">
+                        <img id="new-user-preview"
+                            src="https://ui-avatars.com/api/?name=User&background=random&color=fff"
+                            class="w-16 h-16 rounded-xl border border-slate-100 shadow-sm object-cover">
+                        <label for="new-user-photo"
+                            class="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-800 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-black transition-all shadow">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                        </label>
+                        <input type="file" id="new-user-photo" class="hidden" accept="image/*">
+                    </div>
+                </div>
+                <!-- Fields -->
+                <div>
+                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Nama
+                        Lengkap</label>
+                    <input type="text" id="new-full-name" placeholder="Masukkan nama lengkap" required
+                        class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300 bg-slate-50">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-medium text-slate-400 mb-1">Username</label>
+                        <input type="text" id="new-username" placeholder="admin" required
+                            class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium text-slate-400 mb-1">Password</label>
+                        <div class="relative">
+                            <input type="password" id="new-password" placeholder="••••••••" required
+                                class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300 bg-slate-50 pr-8">
+                            <button type="button" onclick="togglePassword('new-password', this)"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-medium text-slate-400 mb-1">Nomor
+                            Kontak</label>
+                        <input type="text" id="new-phone" placeholder="08..."
+                            class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium text-slate-400 mb-1">Instansi</label>
+                        <input type="text" id="new-instansi" placeholder="PN..."
+                            class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300 bg-slate-50">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Custom Dropdown: Status -->
+                    <div>
+                        <label class="block text-[10px] font-medium text-slate-400 mb-1">Status
+                            Akun</label>
+                        <select id="new-status" class="hidden">
+                            <option value="Active">Aktif</option>
+                            <option value="Inactive">Tidak Aktif</option>
+                        </select>
+                        <div class="custom-dropdown" data-target="new-status">
+                            <button type="button" class="custom-dropdown-trigger">
+                                <span class="custom-dropdown-label">Aktif</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400 flex-shrink-0"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="custom-dropdown-menu">
+                                <div class="custom-dropdown-item active" data-value="Active">
+                                    <span>Aktif</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="check-icon h-3.5 w-3.5 text-slate-700" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="custom-dropdown-item" data-value="Inactive">
+                                    <span>Tidak Aktif</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="check-icon h-3.5 w-3.5 text-slate-700" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Custom Dropdown: Role -->
+                    <div>
+                        <label class="block text-[10px] font-medium text-slate-400 mb-1">Role
+                            User</label>
+                        <select id="new-role" class="hidden">
+                            <option value="User">User Biasa</option>
+                            <option value="Super Admin">Super Admin</option>
+                        </select>
+                        <div class="custom-dropdown" data-target="new-role">
+                            <button type="button" class="custom-dropdown-trigger">
+                                <span class="custom-dropdown-label">User
+                                    Biasa</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400 flex-shrink-0"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="custom-dropdown-menu">
+                                <div class="custom-dropdown-item active" data-value="User">
+                                    <span>User Biasa</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="check-icon h-3.5 w-3.5 text-slate-700" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="custom-dropdown-item" data-value="Super Admin">
+                                    <span>Super Admin</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="check-icon h-3.5 w-3.5 text-slate-700" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Footer buttons -->
+                <div class="flex gap-2 pt-2 border-t border-slate-100 mt-2">
+                    <button type="button"
+                        class="close-user-modal flex-1 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition-all">Batal</button>
+                    <button type="submit"
+                        class="flex-1 py-2 text-xs bg-slate-800 text-white rounded-lg font-semibold hover:bg-black transition-all">Simpan
+                        User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidang Data Modal -->
+    <div id="sidang-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div
+            class="modal-content bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-modal-in">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                <h3 id="sidang-modal-title" class="text-base font-bold text-slate-800 dark:text-slate-100">Tambah Data
+                    Sidang</h3>
+                <button type="button" onclick="window.closeModalFunc(document.getElementById('sidang-modal'))"
+                    class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all rounded-xl hover:bg-white dark:hover:bg-slate-700 shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="sidang-form" class="p-6 space-y-4">
+                <div id="sidang-form-fields" class="flex flex-col gap-4">
+                    <!-- Fields will be dynamically generated based on headers -->
+                </div>
+                <div class="flex gap-2 pt-2 border-t border-slate-100 mt-2">
+                    <button type="button" onclick="window.closeModalFunc(document.getElementById('sidang-modal'))"
+                        class="flex-1 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition-all">Batal</button>
+                    <button type="submit"
+                        class="flex-1 py-2 text-xs bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all">Simpan
+                        Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidang Detail Modal -->
+    <div id="sidang-detail-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[250] hidden flex items-center justify-center p-4">
+        <div
+            class="modal-content bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-modal-in">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 bg-blue-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 border border-transparent dark:border-slate-700/50 shadow-sm dark:shadow-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Detail Jadwal Sidang</h3>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-500 font-medium uppercase tracking-wider">
+                            Informasi Lengkap Perkara</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeModalFunc(document.getElementById('sidang-detail-modal'))"
+                    class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all rounded-xl hover:bg-white dark:hover:bg-slate-700 shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="sidang-detail-content"
+                class="p-6 flex flex-col gap-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <!-- Content will be injected here -->
+            </div>
+            <div
+                class="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800/50 flex justify-end">
+                <button type="button" onclick="window.closeModalFunc(document.getElementById('sidang-detail-modal'))"
+                    class="px-6 py-2.5 text-xs font-bold text-white bg-slate-800 dark:bg-blue-600 hover:bg-slate-900 dark:hover:bg-blue-700 rounded-xl transition-all shadow-none">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail User Modal -->
+    <div id="detail-modal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl w-full max-w-sm shadow-xl border border-slate-100">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h3 class="text-sm font-semibold text-slate-800">Detail User</h3>
+                <button id="close-detail-modal-x"
+                    onclick="window.closeModalFunc(document.getElementById('detail-modal'))"
+                    class="p-1 text-slate-400 hover:text-slate-600 transition-all rounded-lg hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Profile -->
+            <div class="flex items-center gap-4 px-6 py-4 border-b border-slate-100">
+                <img id="detail-photo" src=""
+                    class="w-14 h-14 rounded-xl border border-slate-100 shadow-sm object-cover bg-slate-50 cursor-zoom-in"
+                    alt="Photo">
+                <div>
+                    <h4 id="detail-name" class="text-sm font-semibold text-slate-800">-
+                    </h4>
+                    <p id="detail-username" class="text-xs text-slate-400 font-mono">
+                        @username</p>
+                </div>
+            </div>
+            <!-- Info Rows -->
+            <div class="px-6 py-3 space-y-0 divide-y divide-slate-50">
+                <div class="flex items-center justify-between py-2.5">
+                    <span class="text-[11px] text-slate-400">Role</span>
+                    <span id="detail-role" class="text-[11px] font-semibold text-slate-700">-</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5">
+                    <span class="text-[11px] text-slate-400">Status</span>
+                    <span id="detail-status" class="text-[11px] font-semibold text-emerald-600">-</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5">
+                    <span class="text-[11px] text-slate-400">Nomor Kontak</span>
+                    <span id="detail-phone" class="text-[11px] font-semibold text-slate-700">-</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5">
+                    <span class="text-[11px] text-slate-400">Instansi</span>
+                    <span id="detail-instansi" class="text-[11px] font-semibold text-slate-700">-</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5">
+                    <span class="text-[11px] text-slate-400">Terdaftar Sejak</span>
+                    <span id="detail-date" class="text-[11px] font-semibold text-slate-700">-</span>
+                </div>
+                <div id="detail-password-container" class="hidden flex items-center justify-between py-2.5">
+                    <span class="text-[11px] text-slate-400">Password</span>
+                    <span id="detail-password"
+                        class="text-[11px] font-semibold text-rose-600 font-mono tracking-widest">••••••</span>
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-slate-100">
+                <button id="close-detail-modal"
+                    class="w-full py-2 text-xs bg-slate-800 text-white rounded-lg font-semibold hover:bg-black transition-all">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Edit Profile Modal -->
+    <div id="edit-profile-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-lg w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="h-20 bg-gradient-to-r from-slate-800 to-slate-900 p-6 flex justify-between items-center">
+                <h3 class="text-white font-semibold text-lg">Edit Profil Saya</h3>
+                <button type="button" id="close-edit-profile-modal"
+                    class="text-white/50 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg></button>
+            </div>
+            <form id="edit-profile-form" class="p-8 space-y-6">
+                <div class="flex flex-col items-center mb-2">
+                    <div class="relative group">
+                        <img id="edit-profile-preview"
+                            src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff"
+                            class="w-24 h-24 rounded-[10px] border-4 border-white shadow-lg object-cover bg-white">
+                        <label for="edit-profile-photo"
+                            class="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-[10px] text-white cursor-pointer shadow-lg hover:scale-110 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </label>
+                        <input type="file" id="edit-profile-photo" class="hidden" accept="image/*">
+                    </div>
+                </div>
+                <div><label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Nama
+                        Lengkap</label><input type="text" id="edit-full-name" required class="w-full p-2.5 text-xs">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label
+                            class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Username</label><input
+                            type="text" id="edit-username" required class="w-full p-2.5 text-xs">
+                    </div>
+                    <div><label
+                            class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Password
+                            Baru</label>
+                        <div class="relative">
+                            <input type="password" id="edit-password" placeholder="Biarkan kosong..."
+                                class="w-full p-2.5 text-xs pr-8">
+                            <button type="button" onclick="togglePassword('edit-password', this)"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label
+                            class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Nomor
+                            Kontak</label><input type="text" id="edit-phone" placeholder="08..."
+                            class="w-full p-2.5 text-xs">
+                    </div>
+                    <div><label
+                            class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Instansi</label><input
+                            type="text" id="edit-instansi" placeholder="PN..." class="w-full p-2.5 text-xs">
+                    </div>
+                </div>
+                <button type="submit" class="w-full btn-premium py-3 text-xs">Simpan
+                    Perubahan</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="progress-overlay"
+        class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg text-center">
+            <h3 class="font-semibold mb-4">Memproses...</h3>
+            <div class="w-64 h-2 bg-slate-100 rounded-[10px] overflow-hidden">
+                <div id="progress-bar" class="h-full bg-blue-600 w-0 transition-all">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div id="toast-container"
+        class="fixed top-8 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-[300] items-center w-full max-w-md pointer-events-none">
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = 'login.html';
+        const logout = () => { if (window.handleLogout) window.handleLogout(); else { localStorage.clear(); window.location.href = 'login.html'; } };
+        document.getElementById('logout-btn').onclick = logout;
+        document.getElementById('logout-btn-dropdown').onclick = logout;
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const svg = btn.querySelector('svg');
+            if (input.type === 'password') {
+                input.type = 'text';
+                svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />';
+            } else {
+                input.type = 'password';
+                svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+            }
+        }
+    </script>
+    <!-- Modal Konfirmasi Hapus Sidang -->
+    <div id="modal-hapus-sidang"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[300] hidden flex items-center justify-center p-4">
+        <div
+            class="modal-content bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-modal-in p-6 text-center">
+            <div
+                class="w-16 h-16 bg-rose-50 dark:bg-rose-900/20 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">Hapus Data Sidang?</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 px-4">Apakah Anda yakin ingin menghapus data
+                jadwal sidang ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-3">
+                <button type="button" onclick="window.closeModalFunc(document.getElementById('modal-hapus-sidang'))"
+                    class="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all border border-slate-200 dark:border-slate-700">Batal</button>
+                <button id="confirm-delete-sidang-btn"
+                    class="flex-1 py-2.5 text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-all shadow-none">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus User -->
+    <div id="modal-hapus-user"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden flex items-center justify-center p-4">
+        <div
+            class="modal-content bg-white rounded-2xl w-full max-w-xs shadow-2xl border border-slate-100 overflow-hidden animate-modal-in">
+            <div class="p-6 text-center">
+                <div
+                    class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Hapus User?</h3>
+                <p class="text-xs text-slate-500 mb-6">Apakah Anda yakin ingin menghapus
+                    user <span id="delete-user-name" class="font-bold text-slate-700"></span>? Tindakan ini tidak
+                    dapat
+                    dibatalkan.</p>
+                <div class="flex gap-3">
+                    <button id="cancel-user-delete"
+                        class="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all border border-slate-200 dark:border-slate-700">Batal</button>
+                    <button id="confirm-user-delete"
+                        class="flex-1 py-2.5 text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-all">Hapus</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear All Data Confirmation Modal -->
+    <div id="modal-clear-all"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden flex items-center justify-center p-4">
+        <div
+            class="modal-content bg-white rounded-2xl w-full max-w-xs shadow-2xl border border-slate-100 overflow-hidden animate-modal-in">
+            <div class="p-6 text-center">
+                <div
+                    class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Hapus Semua Data?</h3>
+                <p class="text-xs text-slate-500 mb-6 leading-relaxed">Tindakan ini akan
+                    menghapus seluruh jadwal sidang
+                    secara permanen. Data yang sudah dihapus tidak dapat dikembalikan.
+                </p>
+                <div class="flex gap-3">
+                    <button id="cancel-clear-all"
+                        class="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all border border-slate-200 dark:border-slate-700">Batal</button>
+                    <button id="confirm-clear-all"
+                        class="flex-1 py-2.5 text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-all shadow-none">Ya,
+                        Hapus</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-preview-modal"
+        class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[300] hidden flex items-center justify-center p-4 cursor-zoom-out">
+        <div class="modal-content max-w-4xl max-h-[90vh] relative group">
+            <button id="close-image-preview"
+                class="absolute -top-12 right-0 text-white/50 hover:text-white transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <img id="large-image-preview" src=""
+                class="rounded-2xl shadow-2xl max-w-full max-h-[85vh] object-contain border-4 border-white/10">
+        </div>
+    </div>
+</body>
+
+</html>
